@@ -82,3 +82,16 @@ export const Logout = async(req, res) => {
     res.clearCookie('refreshToken');
     return res.sendStatus(200);
 }
+
+export async function currentUserId(req) {
+    const refreshToken = req.cookies.refreshToken;
+    if(!refreshToken) return 0;
+    const user = await Users.findAll({
+        where:{
+            refresh_token: refreshToken
+        }
+    });
+    if(!user[0]) return 0;
+    const userId = user[0].id;
+    return userId;
+}
