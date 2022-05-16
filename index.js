@@ -6,7 +6,7 @@ import db from "./config/Database.js";
 import router from "./routes/index.js";
 import mysql from "mysql";
 import Users from "./models/UserModel.js";
-import { currentUserId } from "./controllers/Users.js";
+import { currentUser } from "./controllers/Users.js";
 
 const db1 = mysql.createConnection({
   user: "root",
@@ -31,9 +31,8 @@ app.use(express.json());
 app.use(router);
 
 app.post("/create", (req, res) => {
-  let userId = currentUserId(req);
-  userId.then((id) => {
-    if (id <= 0) {
+  currentUser(req).then((user) => {
+    if (user == null) {
       res.status(404).json({ msg: "Not logged in" });
       console.log("Not logged in");
       return 0;
@@ -44,7 +43,7 @@ app.post("/create", (req, res) => {
     const country = req.body.country;
     const position = req.body.position;
     const wage = req.body.wage;
-    const createdBy = id;
+    const createdBy = user.id;
 
     db1.query(
       "INSERT INTO boards (name, age, country, position, wage, createdBy) VALUES (?,?,?,?,?,?)",
@@ -61,15 +60,14 @@ app.post("/create", (req, res) => {
 });
 
 app.get("/boards", (req, res) => {
-  let userId = currentUserId(req);
-  userId.then((id) => {
-    if (id <= 0) {
+  currentUser(req).then((user) => {
+    if (user == null) {
       res.status(404).json({ msg: "Not logged in" });
       console.log("Not logged in");
       return 0;
     }
 
-    db1.query(`SELECT * FROM boards WHERE createdBy=${id}`, (err, result) => {
+    db1.query(`SELECT * FROM boards WHERE createdBy=${user.id}`, (err, result) => {
       if (err) {
         console.log(err);
       } else {
