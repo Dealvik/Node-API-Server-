@@ -67,7 +67,12 @@ app.get("/boards", (req, res) => {
       return 0;
     }
 
-    db1.query(`SELECT * FROM boards WHERE createdBy=${user.id}`, (err, result) => {
+    let sql = `SELECT * FROM boards WHERE createdBy=${user.id}`;
+    if (user.role == 2) {
+        sql = `SELECT boards.*, users.name AS createdByName FROM boards INNER JOIN users ON boards.createdBy=users.id`;
+    }
+
+    db1.query(sql, (err, result) => {
       if (err) {
         console.log(err);
       } else {
