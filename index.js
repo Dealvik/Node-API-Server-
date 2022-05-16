@@ -68,6 +68,7 @@ app.get("/boards", (req, res) => {
     }
 
     let sql = `SELECT * FROM boards WHERE createdBy=${user.id}`;
+    // role 2 is an admin that can see all users post
     if (user.role == 2) {
         sql = `SELECT boards.*, users.name AS createdByName FROM boards INNER JOIN users ON boards.createdBy=users.id`;
     }
