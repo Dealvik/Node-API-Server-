@@ -38,16 +38,24 @@ app.post("/create", (req, res) => {
       return 0;
     }
 
+    var today = new Date();
+    var dd = String(today.getDate()).padStart(2, "0");
+    var mm = String(today.getMonth() + 1).padStart(2, "0"); //January is 0!
+    var yyyy = today.getFullYear();
+
+    today = yyyy + '-' + mm + "-" + dd;
+
     const name = req.body.name;
     const age = req.body.age;
     const country = req.body.country;
     const position = req.body.position;
     const wage = req.body.wage;
     const createdBy = user.id;
-
+    const createdOn = today;
+    
     db1.query(
-      "INSERT INTO boards (name, age, country, position, wage, createdBy) VALUES (?,?,?,?,?,?)",
-      [name, age, country, position, wage, createdBy],
+      "INSERT INTO boards (name, age, country, position, wage, createdBy, createdOn) VALUES (?,?,?,?,?,?,?)",
+      [name, age, country, position, wage, createdBy, createdOn],
       (err, result) => {
         if (err) {
           console.log(err);
@@ -70,7 +78,7 @@ app.get("/boards", (req, res) => {
     let sql = `SELECT * FROM boards WHERE createdBy=${user.id}`;
     // role 2 is an admin that can see all users post
     if (user.role == 2) {
-        sql = `SELECT boards.*, users.name AS createdByName FROM boards INNER JOIN users ON boards.createdBy=users.id`;
+      sql = `SELECT boards.*, users.name AS createdByName FROM boards INNER JOIN users ON boards.createdBy=users.id`;
     }
 
     db1.query(sql, (err, result) => {
