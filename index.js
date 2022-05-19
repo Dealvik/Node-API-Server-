@@ -45,17 +45,15 @@ app.post("/create", (req, res) => {
 
     today = yyyy + '-' + mm + "-" + dd;
 
-    const name = req.body.name;
-    const age = req.body.age;
-    const country = req.body.country;
-    const position = req.body.position;
-    const wage = req.body.wage;
     const createdBy = user.id;
     const createdOn = today;
-    
+    const firstName = req.body.firstName;
+    const lastName = req.body.lastName;
+    const title = req.body.title;
+        
     db1.query(
-      "INSERT INTO boards (name, age, country, position, wage, createdBy, createdOn) VALUES (?,?,?,?,?,?,?)",
-      [name, age, country, position, wage, createdBy, createdOn],
+      "INSERT INTO boards (createdBy, createdOn, firstName, lastName, title) VALUES (?,?,?,?,?)",
+      [createdBy, createdOn, firstName, lastName, title],
       (err, result) => {
         if (err) {
           console.log(err);
