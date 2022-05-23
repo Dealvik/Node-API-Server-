@@ -65,6 +65,40 @@ app.post("/create", (req, res) => {
   });
 });
 
+app.post("/createPost", (req, res) => {
+  currentUser(req).then((user) => {
+    if (user == null) {
+      res.status(404).json({ msg: "Not logged in" });
+      console.log("Not logged in");
+      return 0;
+    }
+
+    var today = new Date();
+    var dd = String(today.getDate()).padStart(2, "0");
+    var mm = String(today.getMonth() + 1).padStart(2, "0"); //January is 0!
+    var yyyy = today.getFullYear();
+
+    today = yyyy + '-' + mm + "-" + dd;
+
+    const createdBy = user.id;
+    const createdOn = today;
+    const text = req.body.postText;
+    const boardId = req.body.boardId;
+        
+    db1.query(
+      "INSERT INTO posts (text, createdOn, boardId, createdBy) VALUES (?,?,?,?)",
+      [text, createdOn, boardId, createdBy],
+      (err, result) => {
+        if (err) {
+          console.log(err);
+        } else {
+          res.send("Values inserted");
+        }
+      }
+    );
+  });
+});
+
 app.get("/boards", (req, res) => {
   currentUser(req).then((user) => {
     if (user == null) {
@@ -73,10 +107,20 @@ app.get("/boards", (req, res) => {
       return 0;
     }
 
-    let sql = `SELECT * FROM boards WHERE createdBy=${user.id}`;
+    // let sql = `SELECT * FROM boards WHERE createdBy=${user.id}`;
+    let sql = `SELECT  boards.*, users.name, a.boardId, postCount FROM
+    (SELECT boardId, COUNT(*) AS postCount FROM posts GROUP BY boardId) as a
+      right join boards on boards.id = a.boardId
+      INNER JOIN users ON boards.createdBy=users.id WHERE boards.createdBy=${user.id};`;
     // role 2 is an admin that can see all users post
     if (user.role == 2) {
-      sql = `SELECT boards.*, users.name AS createdByName FROM boards INNER JOIN users ON boards.createdBy=users.id`;
+      // sql = `SELECT boards.*, users.name AS createdByName FROM boards INNER JOIN users ON boards.createdBy=users.id`;
+      sql = `
+      SELECT  boards.*, users.name, a.boardId, postCount FROM
+        (SELECT boardId, COUNT(*) AS postCount FROM posts GROUP BY boardId) as a
+          right join boards on boards.id = a.boardId
+          INNER JOIN users ON boards.createdBy=users.id
+          `;
     }
 
     db1.query(sql, (err, result) => {
