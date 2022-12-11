@@ -7,6 +7,7 @@ import router from "./routes/index.js";
 import mysql from "mysql";
 import Users from "./models/UserModel.js";
 import { currentUser } from "./controllers/Users.js";
+import fileUpload from "express-fileupload";
 
 const db1 = mysql.createConnection({
   user: "root",
@@ -16,7 +17,9 @@ const db1 = mysql.createConnection({
 });
 
 dotenv.config();
+
 const app = express();
+app.use(fileUpload());
 
 try {
   await db.authenticate();
@@ -30,6 +33,7 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(router);
 
+// create BOARD
 app.post("/create", (req, res) => {
   currentUser(req).then((user) => {
     if (user == null) {
@@ -253,19 +257,75 @@ app.get("/boardsSorted", (req, res) => {
   );
 });
 
-function imagePost(database, createdOn, fileName, postId) {
+function imagePost(database, createdOn, fileName, postId, imageType) {
   // insert image - check if an image was even added
   database.query(
-    "INSERT INTO images (createdOn, fileName, postId) VALUES (?,?,?)",
-    [createdOn, fileName, postId],
+    "INSERT INTO images (createdOn, fileName, postId, imageType) VALUES (?,?,?,?)",
+    [createdOn, fileName, postId, imageType],
     (err, result) => {
       if (err) {
         console.log(err);
       } else {
-        console.log("Values inserted, the id of the image is: " + result.insertId);
+        // console.log("Values inserted, the id of the image is: " + result.insertId);
       }
     }
   );
 }
+
+app.post("/upload", (req, res) => {
+  currentUser(req).then((user) => {
+    if (user == null) {
+      res.status(404).json({ msg: "Not logged in" });
+      console.log("Not logged in");
+      return 0;
+    }
+
+    var file = req.files.file;
+    var fileType = file.name.split('.')[1].toLowerCase();
+
+    var today = new Date();
+    var dd = String(today.getDate()).padStart(2, "0");
+    var mm = String(today.getMonth() + 1).padStart(2, "0"); //January is 0!
+    var yyyy = today.getFullYear();
+
+    today = yyyy + "-" + mm + "-" + dd;
+
+    const createdBy = user.id;
+    const createdOn = today;
+    const text = req.body.postText;
+    const boardId = req.body.boardId;
+    
+    // insert post
+    db1.query(
+      "INSERT INTO posts (text, createdOn, boardId, createdBy) VALUES (?,?,?,?)",
+      [text, createdOn, boardId, createdBy],
+      (err, result) => {
+        if (err) {
+          console.log(err);
+        } else {
+          // res.send("Values inserted, the post id is: " + result.insertId);
+          // console.log("Values inserted, the post id is: " + result.insertId);
+          imagePost(db1, createdOn, file.name, result.insertId, fileType);
+        }
+      }
+    );
+
+    if (req.files !== null) {
+      console.log(file);
+      console.log("type of file is " + fileType)
+
+    //   file.mv(`${__dirname}/client/public/uploads/${file.name}`, (err) => {
+    //     if (err) {
+    //       console.error(err);
+    //       return res.status(500).send(err);
+    //     }
+  
+    //   res.json({ fileName: file.name, filePath: `/uploads/${file.name}` });
+    // });
+    } else {
+      return res.status(400).json({ msg: "No file was uploaded" });
+    }
+  });
+});
 
 app.listen(5000, () => console.log("Server running at port 5000"));
