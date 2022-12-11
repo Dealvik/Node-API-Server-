@@ -280,9 +280,11 @@ app.post("/upload", (req, res) => {
       return 0;
     }
 
-    var file = req.files.file;
-    var fileType = file.name.split('.')[1].toLowerCase();
-
+    if (req.files !== null) {
+      var file = req.files.file;
+      var fileType = file.name.split('.')[1].toLowerCase();
+    }
+    
     var today = new Date();
     var dd = String(today.getDate()).padStart(2, "0");
     var mm = String(today.getMonth() + 1).padStart(2, "0"); //January is 0!
@@ -303,28 +305,23 @@ app.post("/upload", (req, res) => {
         if (err) {
           console.log(err);
         } else {
-          // res.send("Values inserted, the post id is: " + result.insertId);
-          // console.log("Values inserted, the post id is: " + result.insertId);
-          imagePost(db1, createdOn, file.name, result.insertId, fileType);
+          if (req.files !== null) {
+              file.mv(`client/public/uploads/${file.name}`, (err) => {
+              if (err) {
+                console.error(err);
+                return res.status(500).send(err);
+              }
+        
+              res.json({ fileName: file.name, filePath: `/uploads/${file.name}` });
+      
+              imagePost(db1, createdOn, file.name, result.insertId, fileType);
+            });
+          }
         }
       }
     );
 
-    if (req.files !== null) {
-      console.log(file);
-      console.log("type of file is " + fileType)
-
-    //   file.mv(`${__dirname}/client/public/uploads/${file.name}`, (err) => {
-    //     if (err) {
-    //       console.error(err);
-    //       return res.status(500).send(err);
-    //     }
-  
-    //   res.json({ fileName: file.name, filePath: `/uploads/${file.name}` });
-    // });
-    } else {
-      return res.status(400).json({ msg: "No file was uploaded" });
-    }
+     
   });
 });
 
