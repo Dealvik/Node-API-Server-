@@ -301,21 +301,37 @@ app.post("/upload", (req, res) => {
     db1.query(
       "INSERT INTO posts (text, createdOn, boardId, createdBy) VALUES (?,?,?,?)",
       [text, createdOn, boardId, createdBy],
-      (err, result) => {
+      (err, postsResult) => {
         if (err) {
           console.log(err);
         } else {
           if (req.files !== null) {
-              file.mv(`client/public/uploads/${file.name}`, (err) => {
-              if (err) {
-                console.error(err);
-                return res.status(500).send(err);
-              }
-        
-              res.json({ fileName: file.name, filePath: `/uploads/${file.name}` });
-      
-              imagePost(db1, createdOn, file.name, result.insertId, fileType);
-            });
+             
+               // insert image - check if an image was even added
+              db1.query(
+                "INSERT INTO images (createdOn, fileName, postId, imageType) VALUES (?,?,?,?)",
+                [createdOn, file.name, postsResult.insertId, fileType],
+                (err, imagesResult) => {
+                  if (err) {
+                    console.log(err);
+                  } else {
+                    const fileName = imagesResult.insertId + "." + fileType;
+                    console.log("the id of the image is " + imagesResult.insertId + " the full name is " + fileName);
+
+                    file.mv(`client/public/uploads/${fileName}`, (err) => {
+                      if (err) {
+                        console.error(err);
+                        return res.status(500).send(err);
+                      }
+                
+                      res.json({ fileName: file.name, filePath: `/uploads/${file.name}` });
+                    });
+                  }
+                }
+              );
+
+              // imagePost(db1, createdOn, file.name, postsResult.insertId, fileType);
+            
           }
         }
       }
