@@ -19,7 +19,10 @@ const db1 = mysql.createConnection({
 dotenv.config();
 
 const app = express();
-app.use(fileUpload());
+// app.use(fileUpload());
+
+// app.use(express.static('public'))
+// app.use('/images', express.static('images'));
 
 try {
   await db.authenticate();
@@ -155,7 +158,7 @@ app.get("/boards/:id", (req, res) => {
     
     // todo check that this user is autorhozed to see this board
     db1.query(
-      "SELECT posts.id,text,image,createdOn,createdBy,name FROM posts INNER JOIN users ON posts.createdBy=users.id WHERE boardId=?",
+      "SELECT posts.id,text,createdOn,createdBy,name FROM posts INNER JOIN users ON posts.createdBy=users.id WHERE boardId=?",
       [req.params.id],
       (err, result) => {
         if (err) {
@@ -318,13 +321,13 @@ app.post("/upload", (req, res) => {
                     const fileName = imagesResult.insertId + "." + fileType;
                     console.log("the id of the image is " + imagesResult.insertId + " the full name is " + fileName);
 
-                    file.mv(`client/public/uploads/${fileName}`, (err) => {
+                    file.mv(`public/images/${fileName}`, (err) => {
                       if (err) {
                         console.error(err);
                         return res.status(500).send(err);
                       }
                 
-                      res.json({ fileName: file.name, filePath: `/uploads/${file.name}` });
+                      res.json({ fileName: file.name, filePath: `/images/${file.name}` });
                     });
                   }
                 }
