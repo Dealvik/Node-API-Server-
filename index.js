@@ -158,7 +158,7 @@ app.get("/boards/:id", (req, res) => {
     
     // todo check that this user is autorhozed to see this board
     db1.query(
-      "SELECT posts.id,text,createdOn,createdBy,name FROM posts INNER JOIN users ON posts.createdBy=users.id WHERE boardId=?",
+      "SELECT posts.id,posts.text,posts.createdOn,createdBy,name, images.id AS imageId FROM posts INNER JOIN users ON posts.createdBy=users.id LEFT JOIN images ON images.postId=posts.id WHERE boardId=?",
       [req.params.id],
       (err, result) => {
         if (err) {
