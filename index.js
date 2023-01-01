@@ -226,11 +226,17 @@ app.delete("/delete/:id", (req, res) => {
 
 app.delete("/deletePost/:id", (req, res) => {
   const id = req.params.id;
-  db1.query("DELETE FROM posts WHERE id = ?", id, (err, result) => {
+  db1.query("DELETE FROM images WHERE postId = ?", id, (err, result) => {
     if (err) {
       console.log(err);
     } else {
-      res.send(result);
+      db1.query("DELETE FROM posts WHERE id = ?", id, (err, result) => {
+        if (err) {
+          console.log(err);
+        } else {
+          res.send(result);
+        }
+      });
     }
   });
 });
