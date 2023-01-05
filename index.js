@@ -36,6 +36,32 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(router);
 
+
+function insertImage(createdOn, file, postId, fileType, res) {
+  db1.query(
+    "INSERT INTO images (createdOn, fileName, postId, imageType) VALUES (?,?,?,?)",
+    [createdOn, file.name, postId, fileType],
+    (err, imagesResult) => {
+      if (err) {
+        console.log(err);
+      } else {
+        const fileName = imagesResult.insertId + "." + fileType;
+        console.log("the id of the image is " + imagesResult.insertId + " the full name is " + fileName);
+
+        file.mv(`public/images/${fileName}`, (err) => {
+          if (err) {
+            console.error(err);
+            return res.status(500).send(err);
+          }
+    
+          res.json({ fileName: file.name, filePath: `/images/${file.name}` });
+        });
+      }
+    }
+  );
+}
+
+
 // create BOARD
 app.post("/create", (req, res) => {
   currentUser(req).then((user) => {
@@ -224,6 +250,7 @@ app.delete("/delete/:id", (req, res) => {
   });
 });
 
+
 app.delete("/deletePost/:id", (req, res) => {
   const id = req.params.id;
   db1.query("DELETE FROM images WHERE postId = ?", id, (err, result) => {
@@ -289,9 +316,10 @@ app.post("/upload", (req, res) => {
       return 0;
     }
 
+    var file, fileType;
     if (req.files !== null) {
-      var file = req.files.file;
-      var fileType = file.name.split('.')[1].toLowerCase();
+      file = req.files.file;
+      fileType = file.name.split('.')[1].toLowerCase();
     }
     
     var today = new Date();
@@ -306,6 +334,7 @@ app.post("/upload", (req, res) => {
     const text = req.body.postText;
     const boardId = req.body.boardId;
     
+
     // insert post
     db1.query(
       "INSERT INTO posts (text, createdOn, boardId, createdBy) VALUES (?,?,?,?)",
@@ -315,38 +344,47 @@ app.post("/upload", (req, res) => {
           console.log(err);
         } else {
           if (req.files !== null) {
-             
+              var postId = postsResult.insertId;
                // insert image - check if an image was even added
-              db1.query(
-                "INSERT INTO images (createdOn, fileName, postId, imageType) VALUES (?,?,?,?)",
-                [createdOn, file.name, postsResult.insertId, fileType],
-                (err, imagesResult) => {
-                  if (err) {
-                    console.log(err);
-                  } else {
-                    const fileName = imagesResult.insertId + "." + fileType;
-                    console.log("the id of the image is " + imagesResult.insertId + " the full name is " + fileName);
-
-                    file.mv(`public/images/${fileName}`, (err) => {
-                      if (err) {
-                        console.error(err);
-                        return res.status(500).send(err);
-                      }
-                
-                      res.json({ fileName: file.name, filePath: `/images/${file.name}` });
-                    });
-                  }
-                }
-              );
-
+              insertImage(createdOn, file, postId, fileType, res);
               // imagePost(db1, createdOn, file.name, postsResult.insertId, fileType);
-            
           }
         }
       }
     );
+  });
+});
 
-     
+app.post("/uploadImage", (req, res) => {
+  currentUser(req).then((user) => {
+    if (user == null) {
+      res.status(404).json({ msg: "Not logged in" });
+      console.log("Not logged in");
+      return 0;
+    }
+    
+    // throw an exception if we dont get a error
+    if (req.files === null) {
+      return res.status(500).send("Image not found.");
+    } 
+
+    var file = req.files.file;
+    var fileType = file.name.split('.')[1].toLowerCase();
+    var today = new Date();
+    var dd = String(today.getDate()).padStart(2, "0");
+    var mm = String(today.getMonth() + 1).padStart(2, "0"); //January is 0!
+    var yyyy = today.getFullYear();
+    
+    today = yyyy + "-" + mm + "-" + dd;
+
+    const createdOn = today;
+    const postId = req.body.postId;
+    
+    if (postId === null) {
+      return res.status(500).send("Post id not found.");
+    }
+
+    insertImage(createdOn, file, postId, fileType, res);
   });
 });
 
