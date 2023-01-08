@@ -8,6 +8,8 @@ import mysql from "mysql";
 import Users from "./models/UserModel.js";
 import { currentUser } from "./controllers/Users.js";
 import fileUpload from "express-fileupload";
+const url = require('url');
+// import url from 'url';
 
 const db1 = mysql.createConnection({
   user: "root",
@@ -46,7 +48,7 @@ function insertImage(createdOn, file, postId, fileType, res) {
         console.log(err);
       } else {
         const fileName = imagesResult.insertId + "." + fileType;
-        console.log("the id of the image is " + imagesResult.insertId + " the full name is " + fileName);
+        // console.log("the id of the image is " + imagesResult.insertId + " the full name is " + fileName);
 
         file.mv(`public/images/${fileName}`, (err) => {
           if (err) {
@@ -175,28 +177,85 @@ app.get("/boards", (req, res) => {
 
 app.get("/boards/:id", (req, res) => {
   currentUser(req).then((user) => {
-    console.log(req.params)
+    // console.log(req.params)
     if (user == null) {
       res.status(401).json({ msg: "Not logged in" });
       console.log("Not logged in");
       return 0;
     }
-    
+
     // todo check that this user is autorhozed to see this board
     db1.query(
-      "SELECT posts.id,posts.text,posts.createdOn,createdBy,name, images.id AS imageId, images.imageType FROM posts INNER JOIN users ON posts.createdBy=users.id LEFT JOIN images ON images.postId=posts.id WHERE boardId=?",
+      "SELECT posts.id,posts.text,posts.createdOn,createdBy,name, images.id AS imageId, \
+      images.imageType FROM posts \
+      INNER JOIN users ON posts.createdBy=users.id LEFT JOIN images ON images.postId=posts.id WHERE boardId=?",
       [req.params.id],
       (err, result) => {
         if (err) {
           console.log(err);
         } else {
-          console.log(req.params)
-          res.send(result);
+          var postsHash = {};
+          var imagesHash = {};
+          
+          let posts = new Array();
+          
+          Object.keys(result).forEach(function (key) { 
+            // console.log(postsHash);
+            // console.log(postsHash[key]);  
+            
+            // check in the id if it already exists in the hashtable
+            var id = result[key].id;
+            var text = result[key].text;
+            var createdOn = result[key].createdOn;
+            var createdBy = result[key].createdBy;
+            var name = result[key].name;
+            var imageId = result[key].imageId;
+            var imageType = result[key].imageType;
+
+
+            if (postsHash[id] === undefined) {
+              postsHash[id] = {
+                "id": id,
+                "text": text,
+                "createdOn": createdOn,
+                "createdBy": createdBy,
+                "name": name,
+                images: new Array()
+              }
+              
+            imagesHash[key] = {
+              imageId, imageType
+            }
+              
+            let info = postsHash[id];
+            
+            postsHash[id].images.push(imagesHash[key]);
+            // console.log(id + " has been added.");
+            
+            const queryObject = url.parse(req.url, true).query;
+            console.log(queryObject);
+
+            // console.log(postsHash[key]);
+            posts.push(info);
+            } else {
+              var imageId = result[key].imageId;
+              var imageType = result[key].imageType;
+              imagesHash[key] = {
+                imageId, imageType
+              }
+              postsHash[id].images.push(imagesHash[key]);
+              let info = postsHash[id];
+              // posts.push(info);
+            }
+          });
+          
+          res.send(posts);
         }
       }
     );
   });
 });
+
 
 app.put("/edit", (req, res) => {
   const id = req.body.id;
@@ -269,10 +328,10 @@ app.delete("/deletePost/:id", (req, res) => {
 });
 
 app.get("/boardsSorted", (req, res) => {
-  console.log(req.url);
+  // console.log(req.url);
 
   const queryObject = url.parse(req.url, true).query;
-  console.log(queryObject.order);
+  // console.log(queryObject.order);
 
   let orderType = "ASC";
   if (queryObject.order == "true") {
