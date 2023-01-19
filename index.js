@@ -8,8 +8,7 @@ import mysql from "mysql";
 import Users from "./models/UserModel.js";
 import { currentUser } from "./controllers/Users.js";
 import fileUpload from "express-fileupload";
-const url = require('url');
-// import url from 'url';
+import url from 'url';
 
 const db1 = mysql.createConnection({
   user: "root",
@@ -232,24 +231,24 @@ app.get("/boards/:id", (req, res) => {
             postsHash[id].images.push(imagesHash[key]);
             // console.log(id + " has been added.");
             
-            const queryObject = url.parse(req.url, true).query;
-            console.log(queryObject);
-
-            // console.log(postsHash[key]);
             posts.push(info);
-            } else {
-              var imageId = result[key].imageId;
-              var imageType = result[key].imageType;
-              imagesHash[key] = {
-                imageId, imageType
-              }
-              postsHash[id].images.push(imagesHash[key]);
-              let info = postsHash[id];
-              // posts.push(info);
+          } else {
+            var imageId = result[key].imageId;
+            var imageType = result[key].imageType;
+            imagesHash[key] = {
+              imageId, imageType
+            }
+            postsHash[id].images.push(imagesHash[key]);
+            let info = postsHash[id];
+            // posts.push(info);
             }
           });
           
-          res.send(posts);
+
+          if (req.url.indexOf('v=2') > 1)
+            res.send(posts);
+          else
+            res.send(result);
         }
       }
     );
@@ -326,6 +325,19 @@ app.delete("/deletePost/:id", (req, res) => {
     }
   });
 });
+
+
+app.delete("/deleteImage/:id", (req, res) => {
+  const id = req.params.id;
+  db1.query("DELETE FROM images WHERE id = ?", id, (err, result) => {
+    if (err) {
+      console.log(err);
+    } else {
+      res.send(result);
+    }
+  });
+});
+
 
 app.get("/boardsSorted", (req, res) => {
   // console.log(req.url);
