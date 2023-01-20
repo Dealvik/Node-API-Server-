@@ -185,24 +185,37 @@ app.get("/boards/:id", (req, res) => {
 
     // todo check that this user is autorhozed to see this board
     db1.query(
-      "SELECT posts.id,posts.text,posts.createdOn,createdBy,name, images.id AS imageId, \
-      images.imageType FROM posts \
-      INNER JOIN users ON posts.createdBy=users.id LEFT JOIN images ON images.postId=posts.id WHERE boardId=?",
+      "SELECT posts.id,posts.text,posts.createdOn,posts.createdBy,name, images.id AS imageId, \
+      images.imageType, posts.boardId AS boardId, boards.title AS title FROM posts \
+      INNER JOIN users ON posts.createdBy=users.id \
+      INNER JOIN boards ON posts.boardId=boards.id \
+      LEFT JOIN images ON images.postId=posts.id WHERE boardId=?;",
+
+
+      // "SELECT posts.id,posts.text,posts.createdOn,createdBy,name, images.id AS imageId, \
+      // images.imageType FROM posts \
+      // INNER JOIN users ON posts.createdBy=users.id LEFT JOIN images ON images.postId=posts.id WHERE boardId=?",
       [req.params.id],
       (err, result) => {
         if (err) {
           console.log(err);
         } else {
+
+          console.log(result);
           var postsHash = {};
           var imagesHash = {};
           
           let posts = new Array();
           
+          var boardId, boardName;
+
           Object.keys(result).forEach(function (key) { 
             // console.log(postsHash);
             // console.log(postsHash[key]);  
             
             // check in the id if it already exists in the hashtable
+            boardId = result[key].boardId;
+            boardName = result[key].title;
             var id = result[key].id;
             var text = result[key].text;
             var createdOn = result[key].createdOn;
@@ -244,11 +257,14 @@ app.get("/boards/:id", (req, res) => {
             }
           });
           
-
-          if (req.url.indexOf('v=2') > 1)
-            res.send(posts);
-          else
-            res.send(result);
+          if (req.url.indexOf('v=3') > 1) {
+            let obj = { id: boardId, name: boardName, posts: posts };
+            res.send(obj);
+          } else if (req.url.indexOf('v=2') > 1) {
+              res.send(posts);
+            } else {
+              res.send(result);
+          }
         }
       }
     );
