@@ -179,7 +179,7 @@ function getPostsFromBoard(req, res, boardId, boardName) {
   db1.query(
     "SELECT posts.id,posts.text,posts.createdOn,createdBy,name, images.id AS imageId, \
     images.imageType FROM posts \
-    INNER JOIN users ON posts.createdBy=users.id LEFT JOIN images ON images.postId=posts.id WHERE boardId=?",
+    INNER JOIN users ON posts.createdBy=users.id LEFT JOIN images ON images.postId=posts.id WHERE boardId=? ORDER BY posts.createdOn",
     [req.params.id],
     (err, result) => {
       if (err) {
