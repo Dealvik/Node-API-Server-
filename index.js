@@ -174,67 +174,43 @@ app.get("/boards", (req, res) => {
   });
 });
 
-app.get("/boards/:id", (req, res) => {
-  currentUser(req).then((user) => {
-    // console.log(req.params)
-    if (user == null) {
-      res.status(401).json({ msg: "Not logged in" });
-      console.log("Not logged in");
-      return 0;
-    }
+function getPostsFromBoard(req, res, boardId, boardName) {
+  // todo check that this user is autorhozed to see this board
+  db1.query(
+    "SELECT posts.id,posts.text,posts.createdOn,createdBy,name, images.id AS imageId, \
+    images.imageType FROM posts \
+    INNER JOIN users ON posts.createdBy=users.id LEFT JOIN images ON images.postId=posts.id WHERE boardId=?",
+    [req.params.id],
+    (err, result) => {
+      if (err) {
+        console.log(err);
+      } else {
+        var postsHash = {};
+        var imagesHash = {};
+        
+        let posts = new Array();
+        
+        Object.keys(result).forEach(function (key) { 
+          // check in the id if it already exists in the hashtable
+          var id = result[key].id;
+          var text = result[key].text;
+          var createdOn = result[key].createdOn;
+          var createdBy = result[key].createdBy;
+          var name = result[key].name;
+          var imageId = result[key].imageId;
+          var imageType = result[key].imageType;
 
-    // todo check that this user is autorhozed to see this board
-    db1.query(
-      "SELECT posts.id,posts.text,posts.createdOn,posts.createdBy,name, images.id AS imageId, \
-      images.imageType, posts.boardId AS boardId, boards.title AS title FROM posts \
-      INNER JOIN users ON posts.createdBy=users.id \
-      INNER JOIN boards ON posts.boardId=boards.id \
-      LEFT JOIN images ON images.postId=posts.id WHERE boardId=? ORDER BY posts.createdOn;",
 
-
-      // "SELECT posts.id,posts.text,posts.createdOn,createdBy,name, images.id AS imageId, \
-      // images.imageType FROM posts \
-      // INNER JOIN users ON posts.createdBy=users.id LEFT JOIN images ON images.postId=posts.id WHERE boardId=?",
-      [req.params.id],
-      (err, result) => {
-        if (err) {
-          console.log(err);
-        } else {
-
-          console.log(result);
-          var postsHash = {};
-          var imagesHash = {};
-          
-          let posts = new Array();
-          
-          var boardId, boardName;
-
-          Object.keys(result).forEach(function (key) { 
-            // console.log(postsHash);
-            // console.log(postsHash[key]);  
+          if (postsHash[id] === undefined) {
+            postsHash[id] = {
+              "id": id,
+              "text": text,
+              "createdOn": createdOn,
+              "createdBy": createdBy,
+              "name": name,
+              images: new Array()
+            }
             
-            // check in the id if it already exists in the hashtable
-            boardId = result[key].boardId;
-            boardName = result[key].title;
-            var id = result[key].id;
-            var text = result[key].text;
-            var createdOn = result[key].createdOn;
-            var createdBy = result[key].createdBy;
-            var name = result[key].name;
-            var imageId = result[key].imageId;
-            var imageType = result[key].imageType;
-
-
-            if (postsHash[id] === undefined) {
-              postsHash[id] = {
-                "id": id,
-                "text": text,
-                "createdOn": createdOn,
-                "createdBy": createdBy,
-                "name": name,
-                images: new Array()
-              }
-              
             imagesHash[key] = {
               imageId, imageType
             }
@@ -252,18 +228,46 @@ app.get("/boards/:id", (req, res) => {
               imageId, imageType
             }
             postsHash[id].images.push(imagesHash[key]);
-            let info = postsHash[id];
-            // posts.push(info);
-            }
-          });
-          
-          if (req.url.indexOf('v=3') > 1) {
-            let obj = { id: boardId, name: boardName, posts: posts };
-            res.send(obj);
-          } else if (req.url.indexOf('v=2') > 1) {
-              res.send(posts);
-            } else {
-              res.send(result);
+          }
+        });
+        
+        if (req.url.indexOf('v=3') > 1) {
+          let obj = { id: boardId, name: boardName, posts: posts };
+          res.send(obj);
+        } else if (req.url.indexOf('v=2') > 1) {
+          res.send(posts);
+        } else {
+          res.send(result);
+        }
+      }
+    }
+  );
+}
+
+app.get("/boards/:id", (req, res) => {
+  currentUser(req).then((user) => {
+    // console.log(req.params)
+    if (user == null) {
+      res.status(401).json({ msg: "Not logged in" });
+      console.log("Not logged in");
+      return 0;
+    }
+    db1.query("SELECT * FROM boards WHERE boards.id=?;",
+      [req.params.id],
+      (err, result) => {
+        if (err) {
+          // console.log(err);
+        } else {
+          // if there is more than 0 rows execute 
+          console.log(result);
+          if (result.length > 0) {
+            var boardId = result[0].id;
+            var boardName = result[0].title;
+
+            getPostsFromBoard(req, res, boardId, boardName);
+          } else {
+            // throw 404
+            res.status(500).json({ msg: "Error" });
           }
         }
       }
