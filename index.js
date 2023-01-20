@@ -189,7 +189,7 @@ app.get("/boards/:id", (req, res) => {
       images.imageType, posts.boardId AS boardId, boards.title AS title FROM posts \
       INNER JOIN users ON posts.createdBy=users.id \
       INNER JOIN boards ON posts.boardId=boards.id \
-      LEFT JOIN images ON images.postId=posts.id WHERE boardId=?;",
+      LEFT JOIN images ON images.postId=posts.id WHERE boardId=? ORDER BY posts.createdOn;",
 
 
       // "SELECT posts.id,posts.text,posts.createdOn,createdBy,name, images.id AS imageId, \
